@@ -1,0 +1,54 @@
+#!/bin/bash
+
+#Andrew McLaughlin
+#21Sep18
+#Add New HR Rep
+
+#Adds new user with given name and home directory of same name
+echo "Enter Username:"
+
+read user
+
+sudo useradd -m $user
+
+#Sets default password
+echo - "welcome1\nwelcome1" | sudo passwd $user
+
+#Forces change of password on first login
+sudo passwd -e $user
+
+#Adds user to group with gid 1500, group must exist already
+sudo usermod -G 1500 $user
+
+#Sets default shell to bash
+sudo chsh $user -s /bin/bash
+
+#logs creation of user
+echo "$user" >> ~/userAccounts.txt
+
+#Creates subdirectories in users home directory
+sudo mkdir /home/$user/Projects /home/$user/Share /home/$user/Documents
+sudo mkdir /home/$user/Projects/Personnel /home/$user/Projects/Benefits
+
+#Creates readme file for user
+echo "Up to date financial information is dropped monthly to you. It is your responsibiliy to save the data by changing the file name" > tmp
+sudo cp tmp /home/$user/Projects/Benefits/readme.txt
+rm tmp
+
+#Changes permissions of certain directories
+sudo chmod 700 /home/$user/Projects/Personnel
+sudo chmod 700 /home/$user/Projects/Benefits
+sudo chmod 740 /home/$user/Share
+
+#Changes ownership of new directories to user
+sudo chown -R $user:$user /home/$user
+
+#Sets a cronjob for the root to download file to Benefits directory
+sudo crontab -l > tmp
+echo "13 2 * * * wget www.dtcc.edu/~jsilver5/ISY150/Project1/Benefits/statewidebenefits.txt -O /home/$user/Projects/Benefits/XXXXXXXX" >> tmp
+
+#Searches syslog for user downloads in cron
+echo "14 2 * * * grep CRON /var/log/syslog | grep $user | grep wget > /home/$user/Documents/cronlog.txt" >> tmp
+
+sudo crontab tmp
+rm tmp
